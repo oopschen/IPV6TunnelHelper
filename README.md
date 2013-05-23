@@ -18,4 +18,4 @@ Prerequest
 ===
 1. register at [tunnelbroker][tunel]
 2. modify path, username and password in scripts *win7open.bat*, *win7close.bat*.
-3. python[pydown]\(>=2.6\) installed
+3. [python][pydown]\(>=2.6\) installed
