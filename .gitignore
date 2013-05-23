@@ -1,0 +1,4 @@
+*.pyc
+abc.py
+fakedata.py
+*.swp
