@@ -14,10 +14,10 @@ CLOSE = 0x2
 class BaseRunner :
     
     def __init__(self, name, uname, upwd) :
-        self._n = name
-        self._m = None
-        self._un = uname
-        self._upwd = upwd
+        self.n = name
+        self.m = None
+        self.un = uname
+        self.upwd = upwd
         
     """
     mode  OPEN CLOSE 
@@ -29,10 +29,10 @@ class BaseRunner :
 
         if mode & OPEN :
             b = Broker()
-            if not b.login(self._un, self._upwd) :
+            if not b.login(self.un, self.upwd) :
                 return
-            self._m = b.nonexist_tunnel_create_or_set()
-            if False == self._m :
+            self.m = b.nonexist_tunnel_create_or_set()
+            if False == self.m :
                 return
             self.open()
 
@@ -42,26 +42,27 @@ class BaseRunner :
     def close(self) :
         pass
 
-class Win7Runner(BaseRunner) :
+class OSRunner(BaseRunner) :
 
     def __init__(self, name, pwd) :
         BaseRunner.__init__(self, "tmpTunnelv4v6", name, pwd)
-        self._fp = os.path.join(os.path.dirname(__file__), "win7", ".data")
+        self._fp = os.path.join(os.path.dirname(__file__), ".runner.data.tmp")
 
     def open(self) :
+        if os.path.exists(self._fp) :
+          self.close()
+
+        # create data file
         logger.info("write to file %s", self._fp)
         with open(self._fp, 'wb+') as output :
-            pickle.dump(self._m, output)
+            pickle.dump(self.m, output)
 
-        cmd = "%s %s %s %s %s %s %s" % (
-            os.path.realpath(os.path.join(os.path.dirname(__file__), "win7", "open.bat")),
-            self._n,
-            self._m.cip4,
-            self._m.cip6,
-            self._m.sip4,
-            self._m.sip6,
-            self._m.routepre
-            )
+        openRoutine = self.__getRoutineByOSTYP(True)
+        if None == openRoutine :
+          logger.error("open cmd: not found")
+          return False
+
+        cmd = openRoutine(self)
         logger.info("open cmd: %s", cmd)
         return os.system(cmd)
 
@@ -69,13 +70,14 @@ class Win7Runner(BaseRunner) :
         if os.path.exists(self._fp) :
             logger.info("read from file %s", self._fp)
             with open(self._fp, 'rb') as input :
-                self._m = pickle.load(input)
+                self.m = pickle.load(input)
 
-            cmd = "%s %s %s" % (
-                os.path.realpath(os.path.join(os.path.dirname(__file__), "win7", "close.bat")),
-                self._n,
-                self._m.cip6
-                )
+            closeRoutine = self.__getRoutineByOSTYP(False)
+            if None == closeRoutine :
+              logger.error("close cmd: not found")
+              return False
+
+            cmd = closeRoutine(self)
             logger.info("close cmd: %s", cmd)
             ret = os.system(cmd)
             if 0 == ret :
@@ -85,11 +87,59 @@ class Win7Runner(BaseRunner) :
             logger.info("no previous configuration found")
             return True
 
+    def __getRoutineByOSTYP(self, isOpen) :
+      if "nt" == os.name :
+        if isOpen :
+          return routine_open_nt
+        else :
+          return routine_close_nt
 
-if __name__ == "__main__" :
-    from tunnelbroker import Meta
-    meta = Meta()
-    meta.cip4 = meta.sip4 = "127.0.0.1"
-    meta.cip6 = meta.sip6 = "2001:23::0"
-    r = Win7Runner(meta)
-    r.run(OPEN | CLOSE)
+      elif "posix" == os.name :
+        if isOpen :
+          return routine_open_linux
+        else :
+          return routine_close_linux
+
+      return None
+
+# routine for diffrent os
+def routine_open_nt (self) :
+    return "%s %s %s %s %s %s %s" % (
+        os.path.realpath(os.path.join(os.path.dirname(__file__), "win7", "open.bat")),
+        self.n,
+        self.m.cip4,
+        self.m.cip6,
+        self.m.sip4,
+        self.m.sip6,
+        self.m.routepre
+        )
+
+def routine_close_nt(self) :
+    return "%s %s %s" % (
+        os.path.realpath(os.path.join(os.path.dirname(__file__), "win7", "close.bat")),
+        self.n,
+        self.m.cip6
+        )
+# end windows
+
+def routine_open_linux(self) :
+    return "%s %s %s %s %s %s %s" % (
+        os.path.realpath(os.path.join(os.path.dirname(__file__), "linux", "open.sh")),
+        self.n,
+        self.m.cip4,
+        self.m.cip6,
+        self.m.sip4,
+        self.m.sip6,
+        self.m.routepre
+        )
+
+def routine_close_linux(self) :
+    return "%s %s %s %s %s %s %s" % (
+        os.path.realpath(os.path.join(os.path.dirname(__file__), "linux", "close.sh")),
+        self.n,
+        self.m.cip4,
+        self.m.cip6,
+        self.m.sip4,
+        self.m.sip6,
+        self.m.routepre
+        )
