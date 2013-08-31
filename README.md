@@ -22,4 +22,5 @@ Prerequest
   
 For Linux  
 ===  
-you need iproute2 preinstalled  
+1. you need iproute2 preinstalled  
+2. add sudo detect, i will suggest you to add *user ALL=(ALL) NOPASSWD:/sbin/sudo* to you sudo configuration
