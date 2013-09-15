@@ -46,7 +46,7 @@ class OSRunner(BaseRunner) :
 
     def __init__(self, name, pwd) :
         BaseRunner.__init__(self, "tmpTunnelv4v6", name, pwd)
-        self._fp = os.path.join(os.path.dirname(__file__), ".runner.data.tmp")
+        self._fp = self.__getTMPDataFileByOSTYP()
 
     def open(self) :
         if os.path.exists(self._fp) :
@@ -101,6 +101,17 @@ class OSRunner(BaseRunner) :
           return routine_close_linux
 
       return None
+
+    def __getTMPDataFileByOSTYP(self) :
+      tmpfile = ".ipv6helper.runner.data.tmp"
+
+      if "nt" == os.name :
+        tmpfile = os.path.join(os.path.dirname(__file__), tmpfile)
+
+      elif "posix" == os.name :
+        tmpfile = os.path.join("/tmp", tmpfile)
+
+      return tmpfile
 
 # routine for diffrent os
 def routine_open_nt (self) :
