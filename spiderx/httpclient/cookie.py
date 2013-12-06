@@ -9,8 +9,6 @@ from spiderx.core import dateutil
 from spiderx.net import urlutil
 
 
-_expires_formats = ["%a, %d-%b-%y %H:%M:%S %Z", "%A, %d-%b-%y %H:%M:%S %Z", "%A, %d-%b-%Y %H:%M:%S %Z","%a, %d-%b-%Y %H:%M:%S %Z"]
-
 """
 a tool record weibo process cookie
 data structure description:
@@ -25,6 +23,15 @@ data structure description:
 """
 class Cookie :
     
+    date_formats = [
+        "%a, %d-%b-%Y %H:%M:%S %Z",
+        "%a, %d %b %Y %H:%M:%S %Z",
+        "%A, %d-%b-%y %H:%M:%S %Z",
+        "%A, %d-%b-%Y %H:%M:%S %Z",
+        "%a, %d-%b-%y %H:%M:%S %Z"
+    ]
+
+
     def __init__(self) :
         self._ck = {}
 
@@ -83,7 +90,7 @@ class Cookie :
                         ret[k] = v
         return ret
 
-    def add(self, domain, path, key, val, expires, secure=False) :
+    def add(self, domain, path, key, val, expires, baseDate=None, secure=False) :
         d = self._format_domain(domain)
         if None == d or 1 > len(d) :
             return False
@@ -96,17 +103,22 @@ class Cookie :
 
         exp = None
         if None != expires :
-            global _expires_formats
-            for formats in _expires_formats :
-                try :
-                    exp = dateutil.get_timestamp_ms(datetime.datetime.strptime(expires, formats))
-                    break
-                except ValueError as e:
-                    pass
+            exp = self.__parse_date(expires)
+            if None == exp :
+                return False
+
+            # if has baseDate then calculate the expire time: (expires - baseDate) + now
+            if None == baseDate :
+                exp = dateutil.get_timestamp_ms(exp)
+            else :
+                expBaseDate =  self.__parse_date(baseDate)
+                if None == expBaseDate :
+                    return False
+                exp = dateutil.get_timestamp_ms(exp) - dateutil.get_timestamp_ms(expBaseDate) + dateutil.get_timestamp_ms()
 
         self._ck[d][path][key] = [exp, val, secure]
 
-    def addFromText(self, domain=None, setIns = None) :
+    def addFromText(self, domain=None, setIns = None, baseDate = None) :
         if None == domain or 1 > len(domain) or setIns == None or 1 > len(setIns):
             return
 
@@ -137,7 +149,7 @@ class Cookie :
                 keys[kvpair[0]] = kvpair[1]
 
         for i, v in keys.iteritems() :
-            self.add(domain, path, i, v, expires, secure)
+            self.add(domain, path, i, v, expires, baseDate, secure)
 
     """
         includes instructs the program to include domain cookies. [(domain, path, key, secure)...]
@@ -230,18 +242,31 @@ class Cookie :
     def clear() :
         self._ck.clear()
 
+    def __parse_date(self, date) :
+        parsedDate = None
+        for formats in Cookie.date_formats :
+            try :
+                parsedDate = datetime.datetime.strptime(date, formats)
+                break
+            except ValueError as e:
+                pass
+
+        return parsedDate
+
+
 if __name__ == "__main__" :
     import unittest
 
     class CookieTest(unittest.TestCase) :
         def setUp(self) :
             c = self._cookie = Cookie()
-            c.addFromText("domain1", setIns = "set-cookie:a=b;path=/abc;")
-            c.addFromText("domain1", setIns = "set-cookie:o=b;path=/;")
-            c.addFromText("domain2", setIns = "set-cookie:a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;")
-            c.addFromText("domain3", setIns = "a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;")
-            c.addFromText("domain4", setIns = "a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;secure")
-            c.addFromText("domain4", setIns = "c=b;expires=Sat, 15-Dec-22 03:40:15 GMT;httponly")
+            baseDate = "Fri, 06 Dec 2013 00:36:32 GMT"
+            c.addFromText("domain1", setIns = "set-cookie:a=b;path=/abc;", baseDate = baseDate)
+            c.addFromText("domain1", setIns = "set-cookie:o=b;path=/;", baseDate = baseDate)
+            c.addFromText("domain2", setIns = "set-cookie:a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;", baseDate = baseDate)
+            c.addFromText("domain3", setIns = "a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;", baseDate = baseDate)
+            c.addFromText("domain4", setIns = "a=b;expires=Sat, 15-Dec-22 03:40:15 GMT;secure", baseDate = baseDate)
+            c.addFromText("domain4", setIns = "c=b;expires=Sat, 15-Dec-22 03:40:15 GMT;httponly", baseDate = baseDate)
 
         def test_domain(self) :
             cookie = self._cookie.getCookies([("domain")])

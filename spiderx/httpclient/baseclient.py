@@ -181,11 +181,12 @@ class BaseClient :
         if None == self._ck :
             return
         hdrs = res.header("set-cookie")
+        curDate = res.header("date")
         if type(hdrs) is list :
             for val in hdrs :
-                self._ck.addFromText(req.host, val)
+                self._ck.addFromText(req.host, val, curDate)
         else :
-            self._ck.addFromText(req.host, hdrs)
+            self._ck.addFromText(req.host, hdrs, curDate)
 
     def uncompress_body(self, res) :
         if None == res.msg :
