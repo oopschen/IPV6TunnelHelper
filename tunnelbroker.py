@@ -198,7 +198,11 @@ class Broker :
             logger.error("modify local ip: %d", blpage.status)
             return False
 
-        return True
+        if 0 == len(blpage.msg) :
+            return True
+
+        logger.error("modify local ip fail: '%s'", blpage.msg)
+        return False
 
     def get_matched_tunnel(self) :
         tids = self.get_all_tunnel_ids()
