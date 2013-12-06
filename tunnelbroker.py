@@ -172,7 +172,6 @@ class Broker :
             return False
         locTuple = mt.span()
         self._bip = blpage.msg[locTuple[0] : locTuple[1]]
-        # best location not avail now then fix to los angel
 
         # parse local ip
         page = self._client.open("http://ip38.com")
@@ -187,6 +186,8 @@ class Broker :
             return False
         locTuple = m.span()
         self._lip = page.msg[locTuple[0]: locTuple[1]]
+
+        logger.info("BestLocation Fetch Done: server(%s), local(%s)", self._bip, self._lip)
         return True
 
     def modify_local_ip(self, tid, newip) :
@@ -250,7 +251,7 @@ class Broker :
 
         if localip != meta.cip4 :
             # 5 
-            logger.info("%s modify local ip from %s to %s", self.__class__, meta.cip4, localip)
+            logger.info("modify local ip from %s to %s", meta.cip4, localip)
             if not self.modify_local_ip(tid, localip) :
                 return False
         else :
