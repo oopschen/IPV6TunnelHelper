@@ -202,6 +202,7 @@ class Broker :
     def get_matched_tunnel(self) :
         tids = self.get_all_tunnel_ids()
         if None == tids or 1 > len(tids) :
+            logger.error("all tunnel id fetch ......")
             return False
 
         if not self.get_bestip_localip() :
