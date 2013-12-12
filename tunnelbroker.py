@@ -33,14 +33,14 @@ class Broker :
     def login(self, username, pwd) :
         # login index
         logger.info("index page......")
-        prelogin = self._client.open("http://tunnelbroker.net/")
+        prelogin = self._client.open(self.getHEURL())
 
         if None == prelogin or 200 != prelogin.status : 
             logger.error("index: %s", prelogin.msg)
             return False
 
         logger.info("logining......")
-        login = self._client.open("http://tunnelbroker.net/login.php", headers={
+        login = self._client.open(self.getHEURL("login.php"), headers={
             "Referer" : "http://tunnelbroker.net/"
             }, data = {
                 "f_user":username,
@@ -49,7 +49,10 @@ class Broker :
                 "Login":"Login"
         })
 
-        if None == login or 302 != login.status : 
+        if None == login :
+            logger.error("login: null")
+            return False
+        if 302 != login.status : 
             logger.error("login: %s", login.msg)
             return False
         logger.info("login: %s", username)
@@ -69,9 +72,9 @@ class Broker :
         localIP = self._lip
         # create process
         logger.info("Go to New Tunnel(local ip = %s, best ip = %s)......", localIP, bestip)
-        newPage = self._client.open("http://tunnelbroker.net/new_tunnel.php", headers = {
+        newPage = self._client.open(self.getHEURL("new_tunnel.php"), headers = {
             "Origin":"http://tunnelbroker.net",
-            "Referer":"http://tunnelbroker.net/new_tunnel.php"
+            "Referer":self.getHEURL("new_tunnel.php")
             },
                 data = "ipv4z=%s&tserv=%s&normaltunnel=Create+Tunnel" % (localIP, bestip)
         )
@@ -86,7 +89,7 @@ class Broker :
     def get_tunnel_meta(self, tid) :
         # get win7 command
         logger.info("Fetch win7 cmd json......")
-        cmdsJson = self._client.open("http://tunnelbroker.net/tunnel_detail.php?tid=%s&ajax=true" % (tid), data={"config": "10"});
+        cmdsJson = self._client.open(self.getHEURL("tunnel_detail.php?tid=%s&ajax=true") % (tid), data={"config": "10"});
         if None == cmdsJson or 200 != cmdsJson.status or None == cmdsJson.msg :
             logger.error("cmd page: %d", cmdsJson.status)
             return False
@@ -128,7 +131,7 @@ class Broker :
         return cip4
 
     def delete(self, tid) :
-        deletePage = self._client.open("http://tunnelbroker.net/tunnel_detail.php?tid=%s&delete=true" % (tid))
+        deletePage = self._client.open(self.getHEURL("tunnel_detail.php?tid=%s&delete=true") % (tid))
         if None == deletePage or 200 != deletePage.status :
             logger.error("deleting %s", tid)
             return False
@@ -149,9 +152,9 @@ class Broker :
 
     def get_all_tunnel_ids(self) :
         logger.info("get all tunnel ids......")
-        indexPage = self._client.open("http://tunnelbroker.net/")
+        indexPage = self._client.open(self.getHEURL())
         if None == indexPage or None == indexPage.msg :
-            logger.erro("delete index %d %s", indexPage.status, indexPage.msg)
+            logger.error("delete index %d %s", indexPage.status, indexPage.msg)
             return None
         return TIDPattern.findall(indexPage.msg)
 
@@ -193,7 +196,7 @@ class Broker :
     def modify_local_ip(self, tid, newip) :
         # create tunel get best location ip
         logger.info("modify local ip......")
-        blpage = self._client.open("http://tunnelbroker.net/tunnel_detail.php?tid=%s&ajax=true"%(tid), data={"ipv4z":newip})
+        blpage = self._client.open(self.getHEURL("tunnel_detail.php?tid=%s&ajax=true")%(tid), data={"ipv4z":newip})
         if None == blpage or 200 != blpage.status :
             logger.error("modify local ip: %d", blpage.status)
             return False
@@ -265,6 +268,9 @@ class Broker :
         # 6
         meta.cip4 = self.get_localnet_ip()
         return meta
+
+    def getHEURL(self, path = "") :
+        return "https://tunnelbroker.net/" + path
 
 
 if __name__ == "__main__" :
