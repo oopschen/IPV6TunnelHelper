@@ -201,7 +201,7 @@ class Broker :
             logger.error("modify local ip: %d", blpage.status)
             return False
 
-        if None == blpage or 0 == len(blpage.msg) :
+        if None == blpage.msg or 0 == len(blpage.msg) :
             return True
 
         logger.error("modify local ip fail: '%s'", blpage.msg)
