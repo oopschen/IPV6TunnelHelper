@@ -69,8 +69,8 @@ class OSRunner(BaseRunner) :
     def close(self) :
         if os.path.exists(self._fp) :
             logger.info("read from file %s", self._fp)
-            with open(self._fp, 'rb') as input :
-                self.m = pickle.load(input)
+            with open(self._fp, 'rb') as f :
+                self.m = pickle.load(f)
 
             closeRoutine = self.__getRoutineByOSTYP(False)
             if None == closeRoutine :
@@ -103,7 +103,7 @@ class OSRunner(BaseRunner) :
       return None
 
     def __getTMPDataFileByOSTYP(self) :
-      tmpfile = ".ipv6helper.runner.data.tmp"
+      tmpfile = "xtunnel.tmp"
 
       if "nt" == os.name :
         tmpfile = os.path.join(os.path.dirname(__file__), tmpfile)

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from spiderx.core.ilog import get
-from cmdrunner import *
+from x6tunnel.cmdrunner import *
 import sys
 import argparse
 
