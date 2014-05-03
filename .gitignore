@@ -2,3 +2,5 @@
 abc.py
 fakedata.py
 .*
+build/
+dist/
