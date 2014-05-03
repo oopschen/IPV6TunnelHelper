@@ -134,7 +134,7 @@ def routine_close_nt(self) :
 # end windows
 
 def routine_open_linux(self) :
-    return "%s %s %s %s %s %s %s" % (
+    return "sh %s %s %s %s %s %s %s" % (
         os.path.realpath(os.path.join(os.path.dirname(__file__), "linux", "open.sh")),
         self.n,
         self.m.cip4,
@@ -145,7 +145,7 @@ def routine_open_linux(self) :
         )
 
 def routine_close_linux(self) :
-    return "%s %s %s %s %s %s %s" % (
+    return "sh %s %s %s %s %s %s %s" % (
         os.path.realpath(os.path.join(os.path.dirname(__file__), "linux", "close.sh")),
         self.n,
         self.m.cip4,
