@@ -19,12 +19,12 @@ You can install by the following command.
 ### Usage
 Open a tunnel by using the tunnelbroker **username** and **passwd**.
     
-   xtunnel -m o username passwd   
+    xtunnel -m o username passwd   
 
      
 Close a tunnel.The **username** and **passwd** is irelevant, can be anything.
     
-   xtunnel -m c username passwd   
+    xtunnel -m c username passwd   
 
      
 
@@ -37,7 +37,6 @@ Prerequest
 * register at [tunnelbroker][tunel]
 * [python][pydown]\(>=2.6\) installed
   
-For Linux  
-===  
+#### Linux  
 1. you need **iproute2** preinstalled  
 2. add sudo detect, i will suggest you to add *user ALL=(ALL) NOPASSWD:/sbin/sudo* to you sudo configuration, if wants normal user run the scripts
