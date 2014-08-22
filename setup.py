@@ -9,7 +9,7 @@ if "nt" == os.name:
 
 
 setup(name='X6Tunnel',
-      version='0.1.0',
+      version='0.2.0',
       description='IPV6 Tunnel helper to make life easier. Current support HE(http://tunnelbroker.net/) only.',
       author='Ray',
       author_email='linxray@gmail.com',

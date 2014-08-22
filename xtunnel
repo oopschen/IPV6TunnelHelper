@@ -6,11 +6,20 @@ from x6tunnel.cmdrunner import *
 import sys
 import argparse
 
+gParser = argparse.ArgumentParser(description="helper for ipv6 tunnel")
+gParser.add_argument("-v", dest="version", help="version", action="store_true")
+args, leftArgs = gParser.parse_known_args()
+
+if args.version:
+    print "XTunnel Version 0.2.0"
+    sys.exit(0)
+
 parse = argparse.ArgumentParser(description="helper for ipv6 tunnel")
 parse.add_argument("username", help="username for login")
 parse.add_argument("password", help="password for login")
 parse.add_argument("-m", dest="mode", choices=['o', 'c'], help="mode for operation open(o), close(c)", default="o")
-args = parse.parse_args()
+parse.add_argument("-v", dest="version", help="version", action="store_true")
+args = parse.parse_args(leftArgs)
 
 if "c" == args.mode :
     mode = CLOSE
