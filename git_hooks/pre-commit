@@ -1,0 +1,5 @@
+#!/bin/sh
+# format package
+# add all
+go fmt github.com/oopschen/xtunnel
+git add -u

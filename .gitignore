@@ -1,6 +1,4 @@
-*.pyc
-abc.py
-fakedata.py
-.*
-build/
-dist/
+*.swp
+*.o
+*.so
+bin/
