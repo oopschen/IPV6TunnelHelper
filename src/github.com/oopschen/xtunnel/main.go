@@ -1,10 +1,10 @@
 package main
 
 import (
-  "fmt"
+	"fmt"
 )
 
 func main() {
-          fmt.Println("hello")
-          fmt.Println("1hello")
+	fmt.Println("hello")
+	fmt.Println("1hello")
 }
