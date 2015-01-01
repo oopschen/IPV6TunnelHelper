@@ -1,19 +1,19 @@
 IPV6TunnelHelper
 ================
 [tunel]: http://tunnelbroker.net/ "Tunnel Broker"
-[pydown]: http://www.python.org/download/releases/2.7.5/ "python2.7"
-This project is help end users to get into IPV6 network easily. All the project done is some scripts to ease using the service provided by **[tunnelbroker.net][tunel]**. The current status of this project only support on win7 with python installed and linux with *iproute2* installed, it is very welcome for you to add support for platforms like **bsd**, **winxp** and so on.  
+[godown]: http://golang.org "go 1.3"
+This project is help users to get into IPV6 network easily. All the project done is some scripts to ease using the service provided by **[tunnelbroker.net][tunel]**. The current status of this project only support OS with Go installed and linux MUST have *iproute2* installed, it is very welcome for you to add support for platforms like **bsd**, **winxp** and so on.  
   
 Feature
 ====
 1. auto create tunnel at [tunnelbroker][tunel]
-2. auto update end user ip when ip changed
-3. win7 tunnel creation automation
+2. auto update end user's ip settings at [tunnelbroker][tunnel] when ip changed
+3. OS tunnel creation automation
   
 ### Install  
 You can install by the following command.  
   
-    pip install X6tunnel 
+    go install github.com/oopschen/xtunnel
   
 
 ### Usage
@@ -35,7 +35,7 @@ It is not easy to use service like **Google**, **Facebook** and **Forbidden webs
 Prerequest
 ===
 * register at [tunnelbroker][tunel]
-* [python][pydown]\(>=2.6\) installed
+* [go][godown]\(>=1.3\) installed
   
 #### Linux  
 1. you need **iproute2** preinstalled  
