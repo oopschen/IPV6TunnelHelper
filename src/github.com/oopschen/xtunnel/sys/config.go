@@ -1,4 +1,4 @@
-package config
+package sys
 
 type Config struct {
   username string

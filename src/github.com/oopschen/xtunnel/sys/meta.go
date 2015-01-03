@@ -1,4 +1,4 @@
-package meta
+package sys
 
 type Meta struct {
   ipv4Server string
