@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DIAL_TIMEOUT_NANOSEC = 3 * 1000 * 1000 * 1000
+	DIAL_TIMEOUT_NANOSEC = 3 * 1000 * 1000 * 1000 * 1000
 	TEST_WEBSITE_FOR_IP  = "http://ipv4.infobyip.com/ipdetector.php"
 )
 
