@@ -41,7 +41,7 @@ func GetLocalAddress() (ip string) {
 
 	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	req.Header.Add("Accept-Encoding", "gzip,deflate,sdch")
-	req.Header.Add("User-Agent", "curl 1.0")
+	req.Header.Add("User-Agent", "xtunnel 1.0")
 
 	resp, err := client.Do(req)
 	if nil != err {
