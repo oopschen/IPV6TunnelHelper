@@ -1,18 +1,32 @@
-package he
+package tunnel
 
 import (
+	// "fmt"
 	"github.com/oopschen/xtunnel/iputil"
 	"github.com/oopschen/xtunnel/sys"
+	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 const (
-	maxTunnelNum  = 5
-	ipListPattern = regexp.Compile(`<span\s+style\s*=\s*"\s*float:\s*right;\s*color:\s*darkgray\s*"\s*>\s*([^\s<]+)\s*</span>`)
+	maxTunnelNum = 5
 )
+
+var (
+	ipListPattern *regexp.Regexp
+)
+
+func init() {
+	ipListPattern, err := regexp.Compile(`<span\s+style\s*=\s*"\s*float:\s*right;\s*color:\s*darkgray\s*"\s*>\s*([^\s<]+)\s*</span>`)
+
+	if nil != err {
+		sys.Logger.Printf("init ip list pattern for he\n")
+
+	}
+}
 
 type HEBroker struct {
 	config    sys.Config
@@ -22,7 +36,7 @@ type HEBroker struct {
 }
 
 func (broker *HEBroker) Init(cfg sys.Config) bool {
-	if nil == cfg || 1 > len(cfg.username) || 1 > len(cfg.userpasswd) {
+	if 1 > len(cfg.Username) || 1 > len(cfg.Userpasswd) {
 		return false
 
 	}
@@ -34,7 +48,7 @@ func (broker *HEBroker) Init(cfg sys.Config) bool {
 		DisableCompression: false,
 	}
 
-	broker.Header = http.Header
+	broker.header = http.Header{}
 	broker.header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	broker.header.Add("Accept-Encoding", "gzip,deflate,sdch")
 	broker.header.Add("User-Agent", "xtunnel 1.0")
@@ -67,7 +81,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 
 	// find tunnels
 	if !broker.login() {
-		sys.Logger.Printf("login as %s fail\n", broker.cfg.username)
+		sys.Logger.Printf("login as %s fail\n", broker.cfg.Username)
 		return nil
 
 	}
@@ -117,19 +131,52 @@ func (broker *HEBroker) Destroy() bool {
 
 // internal methods
 func (broker *HEBroker) login() bool {
-	// TODO
+	var (
+		loginUrl = "https://tunnelbroker.net/login.php"
+		postData = htpp.Values{}
+	)
+	postData.Add("f_user", broker.config.Username)
+	postData.Add("f_pass", broker.config.Userpasswd)
+	postData.Add("Login", "Login")
+	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
+
+	cookieUrl, err := url.Parse(loginUrl)
+	if nil != err {
+		sys.Logger.Printf("parse url for %s: %s\n", loginUrl, err)
+		return false
+
+	}
+
+	resp := doHttpFetch("POST", loginUrlurl, postBody, broker.cookieJar.Cookies(cookieUrl))
+	if nil == resp {
+		return false
+
+	}
+
+	// get cookies
+	cookies = resp.Cookies()
+	if nil != cookies && 0 < len(cookies) {
+		broker.cookieJar.SetCookies(cookieUrl, cookies)
+
+	}
+
+	return true
 }
 
 func (broker *HEBroker) findAllTunnels() []sys.Meta {
 	// TODO
+	// url := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php")
+	return nil
 }
 
 func (broker *HEBroker) updateTunnel(meta sys.Meta) bool {
 	// TODO
+	return false
 }
 
 func (broker *HEBroker) createTunnel() bool {
 	// TODO
+	return false
 }
 
 /**
@@ -142,35 +189,24 @@ func (broker *HEBroker) getBestIP() string {
 		visit https://tunnelbroker.net/new_tunnel.php
 		parse ips
 	*/
-	url := "https://tunnelbroker.net/new_tunnel.php"
-	req, err := http.NewRequest("GET", url, nil)
-	if nil != err {
-		sys.Logger.Printf("create req for %s: %s\n", url, err)
-		return ""
-	}
+	ipUrl := "https://tunnelbroker.net/new_tunnel.php"
 
 	// set cookies
-	cookieUrl, err := url.Parse(url)
+	cookieUrl, err := url.Parse(ipUrl)
 	if nil != err {
-		sys.Logger.Printf("parse url for %s: %s\n", url, err)
+		sys.Logger.Printf("parse url for %s: %s\n", ipUrl, err)
 		return ""
 
 	}
 
-	cookies := broker.cookieJar.Cookies(cookieUrl)
-	if nil != cookies && 0 < len(cookies) {
-		for _, cookie := range cookies {
-			req.AddCookie(cookie)
+	// do request
+	resp := doHttpFetch("GET", ipUrl, nil, broker.cookieJar.Cookies(cookieUrl))
 
-		}
-
-	}
-
-	resp, err := client.Do(req)
-	if nil != err {
-		sys.Logger.Printf("request %s: %s\n", url, err)
+	if nil == resp {
 		return ""
 	}
+
+	defer resp.Body.Close()
 
 	// read body
 	body, err := ioutil.ReadAll(resp.Body)
@@ -194,4 +230,28 @@ func (broker *HEBroker) getBestIP() string {
 
 	return iputil.GetBestIP(ipSlice)
 
+}
+
+func doHttpFetch(method string, url string, body io.Reader, cookies []Cookies) http.Response {
+	req, err := http.NewRequest(method, url, body)
+	if nil != err {
+		sys.Logger.Printf("create req for %s: %s\n", url, err)
+		return nil
+	}
+
+	if nil != cookies && 0 < len(cookies) {
+		for _, cookie := range cookies {
+			req.AddCookie(cookie)
+
+		}
+
+	}
+
+	resp, err := client.Do(req)
+	if nil != err {
+		sys.Logger.Printf("request %s: %s\n", url, err)
+		return nil
+	}
+
+	return resp
 }
