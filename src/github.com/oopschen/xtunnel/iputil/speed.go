@@ -41,6 +41,7 @@ func GetBestIP(ips []string) string {
 
 	curConcurrent := 0
 	c := make(chan ipMeta, 128)
+	defer close(c)
 	ipTimeMap := make(map[string]measureTime)
 	for _, ip := range ips {
 		if 1 > len(ip) {
@@ -136,7 +137,10 @@ func checkPermform(c chan ipMeta, ip string) {
 
 func wait4Chan(c chan ipMeta, dest map[string]measureTime, num int) {
 	for i := 0; i < num; i++ {
-		meta := <-c
+		meta, ok := <-c
+		if !ok {
+			continue
+		}
 		dest[meta.ip] = meta.avgMS
 
 	}
