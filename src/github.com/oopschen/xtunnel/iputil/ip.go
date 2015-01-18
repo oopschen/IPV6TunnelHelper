@@ -4,10 +4,12 @@ import (
 	"github.com/oopschen/xtunnel/sys"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 const (
-	DIAL_TIMEOUT_NANOSEC = 3 * 1000 * 1000 * 1000 * 1000
+	// 3 seconds
+	DIAL_TIMEOUT_NANOSEC = 3 * time.Second
 	TEST_WEBSITE_FOR_IP  = "http://ipv4.infobyip.com/ipdetector.php"
 )
 

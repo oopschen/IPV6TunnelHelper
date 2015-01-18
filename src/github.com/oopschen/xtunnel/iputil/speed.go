@@ -10,7 +10,8 @@ import (
 
 const (
 	maxConcurrent = 10
-	timeoutNanoMS = 1 * 1000 * 1000 * 1000 * 1000
+	// 5 seconds
+	timeoutNanoMS = 5 * time.Second
 	tryCount      = 4
 )
 
@@ -76,9 +77,12 @@ func GetBestIP(ips []string) string {
 }
 
 func checkPermform(c chan ipMeta, ip string) {
+	resultMeta := ipMeta{}
+
 	conn, err := net.DialTimeout("ip4:icmp", ip, timeoutNanoMS)
 	if nil != err {
 		sys.Logger.Printf("socket %s", err)
+		c <- resultMeta
 		return
 
 	}
@@ -107,6 +111,7 @@ func checkPermform(c chan ipMeta, ip string) {
 		_, err := conn.Write(pkt)
 		if nil != err {
 			sys.Logger.Printf("write packet %s", err)
+			c <- resultMeta
 			return
 
 		}
@@ -127,18 +132,17 @@ func checkPermform(c chan ipMeta, ip string) {
 	}
 
 	// send result to channel
-	var meta ipMeta
-	meta.ip = ip
+	resultMeta.ip = ip
 	// ms
-	meta.avgMS = measureTime(uint16(tolTime/1000000) / count)
-	c <- meta
+	resultMeta.avgMS = measureTime(uint16(tolTime/1000000) / count)
+	c <- resultMeta
 
 }
 
 func wait4Chan(c chan ipMeta, dest map[string]measureTime, num int) {
 	for i := 0; i < num; i++ {
 		meta, ok := <-c
-		if !ok {
+		if !ok || "" == meta.ip {
 			continue
 		}
 		dest[meta.ip] = meta.avgMS
