@@ -6,7 +6,7 @@ import (
 
 type Broker interface {
 	// init broker based on config
-	Init(cfg sys.Config) bool
+	Init(cfg *sys.Config) bool
 	// get ip meta info
 	GetMeta() *sys.Meta
 	// destroy

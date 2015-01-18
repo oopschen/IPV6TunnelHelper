@@ -9,7 +9,7 @@ import (
 
 const (
 	// 3 seconds
-	DIAL_TIMEOUT_NANOSEC = 3 * time.Second
+	DIAL_TIMEOUT_NANOSEC = 5 * time.Second
 	TEST_WEBSITE_FOR_IP  = "http://ipv4.infobyip.com/ipdetector.php"
 )
 
