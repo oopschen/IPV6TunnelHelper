@@ -175,16 +175,9 @@ func (broker *HEBroker) Destroy() bool {
 // internal methods
 func (broker *HEBroker) login() bool {
 	var (
-		mainUrl  = "https://tunnelbroker.net"
 		loginUrl = "https://tunnelbroker.net/login.php"
 		postData = url.Values{}
 	)
-
-	// get
-	resp := broker.doHttpFetch("GET", mainUrl, nil)
-	if nil == resp {
-		return false
-	}
 
 	// post
 	postData.Add("f_user", broker.config.Username)
@@ -193,7 +186,7 @@ func (broker *HEBroker) login() bool {
 	postData.Add("redir", "")
 	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
 
-	resp = broker.doHttpFetch("POST", loginUrl, postBody)
+	resp := broker.doHttpFetch("POST", loginUrl, postBody)
 	if nil == resp {
 		return false
 
