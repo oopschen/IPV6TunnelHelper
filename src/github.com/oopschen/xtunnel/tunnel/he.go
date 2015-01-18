@@ -175,15 +175,25 @@ func (broker *HEBroker) Destroy() bool {
 // internal methods
 func (broker *HEBroker) login() bool {
 	var (
+		mainUrl  = "https://tunnelbroker.net"
 		loginUrl = "https://tunnelbroker.net/login.php"
 		postData = url.Values{}
 	)
+
+	// get
+	resp := broker.doHttpFetch("GET", mainUrl, nil)
+	if nil == resp {
+		return false
+	}
+
+	// post
 	postData.Add("f_user", broker.config.Username)
 	postData.Add("f_pass", broker.config.Userpasswd)
 	postData.Add("Login", "Login")
+	postData.Add("redir", "")
 	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
 
-	resp := broker.doHttpFetch("POST", loginUrl, postBody)
+	resp = broker.doHttpFetch("POST", loginUrl, postBody)
 	if nil == resp {
 		return false
 
@@ -352,7 +362,7 @@ func (broker *HEBroker) getBestIP() string {
 func (b *HEBroker) doHttpFetch(method string, url string, body io.Reader) *http.Response {
 	req, err := http.NewRequest(method, url, body)
 	if nil != err {
-		sys.Logger.Printf("create req for %s: %s\n", url, err)
+		sys.Logger.Printf("create req(%s) for %s: %s\n", method, url, err)
 		return nil
 	}
 
