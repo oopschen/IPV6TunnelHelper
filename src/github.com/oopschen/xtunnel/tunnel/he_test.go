@@ -12,8 +12,8 @@ var (
 	/*
 		DO NOT COMMIT YOUR USER/PWD
 	*/
-	myUser    = "sangeshitou"
-	myUserPwd = "123456cC"
+	myUser    = ""
+	myUserPwd = ""
 )
 
 func TestFailLogin(t *testing.T) {
