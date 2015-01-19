@@ -127,7 +127,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 		return nil
 
 	}
-	sys.Logger.Printf("Setup ip info success\n")
+	sys.Logger.Printf("Choose %s for tunnel %s\n", meta.IPv4Server, meta.IPv4Client)
 
 	// find matched tunnel
 	if nil != tunnels {
