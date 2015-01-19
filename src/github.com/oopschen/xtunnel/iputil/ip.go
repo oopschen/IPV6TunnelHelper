@@ -34,18 +34,7 @@ func GetLocalAddress() (ip string) {
 		Transport: transport,
 	}
 
-	req, err := http.NewRequest("GET", TEST_WEBSITE_FOR_IP, nil)
-	if nil != err {
-		sys.Logger.Printf("create req for %s: %s\n", TEST_WEBSITE_FOR_IP, err)
-		return
-
-	}
-
-	req.Header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Add("Accept-Encoding", "gzip,deflate,sdch")
-	req.Header.Add("User-Agent", "xtunnel 1.0")
-
-	resp, err := client.Do(req)
+	resp, err := client.Get(TEST_WEBSITE_FOR_IP)
 	if nil != err {
 		sys.Logger.Printf("request %s: %s\n", TEST_WEBSITE_FOR_IP, err)
 		return

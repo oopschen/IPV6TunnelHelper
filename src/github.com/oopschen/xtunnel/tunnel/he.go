@@ -36,7 +36,6 @@ func init() {
 
 type HEBroker struct {
 	config *sys.Config
-	header *http.Header
 	client *http.Client
 }
 
@@ -48,15 +47,6 @@ func (broker *HEBroker) Init(cfg *sys.Config) bool {
 	}
 
 	broker.config = cfg
-
-	// set up common header
-	broker.header = &http.Header{}
-	broker.header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	broker.header.Add("Accept-Encoding", "gzip,deflate,sdch")
-	broker.header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.101 Safari/537.36")
-	broker.header.Add("Referer", "https://tunnelbroker.net")
-	broker.header.Add("Connection", "keep-alive")
-	broker.header.Add("Host", "tunnelbroker.net")
 
 	// set up client
 	var (

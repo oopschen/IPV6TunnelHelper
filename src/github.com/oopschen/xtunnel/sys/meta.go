@@ -7,7 +7,9 @@ type Meta struct {
 	// client ipv4 address
 	IPv4Client string `xml:"clientv4"`
 	// client ipv6 address
-	IPv6Client string `xml:"serverv6"`
+	IPv6Client string `xml:"clientv6"`
+	// server ipv6 address
+	IPv6Server string `xml:"serverv6"`
 	// router ipv6
 	Router6 string `xml:"routed64"`
 }
