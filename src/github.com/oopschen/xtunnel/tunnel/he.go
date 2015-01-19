@@ -53,8 +53,10 @@ func (broker *HEBroker) Init(cfg *sys.Config) bool {
 	broker.header = &http.Header{}
 	broker.header.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	broker.header.Add("Accept-Encoding", "gzip,deflate,sdch")
-	broker.header.Add("User-Agent", "xtunnel 1.0")
-	broker.header.Add("Referer", "https://tunnelbroker.net/")
+	broker.header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/38.0.2125.101 Safari/537.36")
+	broker.header.Add("Referer", "https://tunnelbroker.net")
+	broker.header.Add("Connection", "keep-alive")
+	broker.header.Add("Host", "tunnelbroker.net")
 
 	// set up client
 	var (
@@ -183,10 +185,9 @@ func (broker *HEBroker) login() bool {
 	postData.Add("f_user", broker.config.Username)
 	postData.Add("f_pass", broker.config.Userpasswd)
 	postData.Add("Login", "Login")
-	postData.Add("redir", "")
-	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
+	postData.Add("redir", "/")
 
-	resp := broker.doHttpFetch("POST", loginUrl, postBody)
+	resp := broker.doHttpPost(loginUrl, postData)
 	if nil == resp {
 		return false
 
@@ -195,31 +196,54 @@ func (broker *HEBroker) login() bool {
 	// check cookie
 	cookieUrl, err := url.Parse(loginUrl)
 	if nil != err {
-		sys.Logger.Printf("login fail cookie url: %s\n", err)
+		sys.Logger.Printf("Login fail cookie url: %s\n", err)
 		return false
 
 	}
 	cookies := broker.client.Jar.Cookies(cookieUrl)
 	if nil == cookies {
-		sys.Logger.Printf("login fail no cookie found\n")
+		sys.Logger.Printf("Login fail no cookie found\n")
 		return false
 	}
 
+	foundHETB := false
 	for _, c := range cookies {
 		if "hetb" == strings.ToLower(c.Name) {
-			return true
+			foundHETB = true
+			break
 
 		}
 
 	}
 
-	sys.Logger.Printf("login fail no cookie \"HETB\"found\n")
+	if !foundHETB {
+		sys.Logger.Printf("Login fail no cookie \"HETB\"found\n")
+		return false
+
+	}
+
+	// check logout keyword in main page
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if nil != err {
+		sys.Logger.Printf("Login redirect read body: %s, status: %s\n", err, resp.Status)
+		return false
+
+	}
+
+	body := string(bodyBytes)
+
+	if strings.Contains(body, "Logout") && strings.Contains(body, "Main Page") {
+		return true
+
+	}
+
+	sys.Logger.Printf("Login redirect page do not contain keywords: status=%s, body=%s\n", resp.Status, body)
 	return false
 }
 
 func (broker *HEBroker) findAllTunnels() []*sys.Meta {
 	tunnelURL := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php", broker.config.Username, broker.config.Userpasswd)
-	resp := broker.doHttpFetch("GET", tunnelURL, nil)
+	resp := broker.doHttpGet(tunnelURL)
 	if nil == resp {
 		return nil
 
@@ -237,9 +261,8 @@ func (broker *HEBroker) updateTunnel(meta *sys.Meta) bool {
 	updateURL := fmt.Sprintf("https://tunnelbroker.net/tunnel_detail.php?tid=%s&ajax=true", meta.ID)
 	postData := url.Values{}
 	postData.Add("ipv4z", meta.IPv4Client)
-	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
 
-	resp := broker.doHttpFetch("POST", updateURL, postBody)
+	resp := broker.doHttpPost(updateURL, postData)
 	if nil == resp {
 		return false
 
@@ -273,9 +296,8 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 	postData.Add("ipv4z", meta.IPv4Client)
 	postData.Add("tserv", meta.IPv4Server)
 	postData.Add("normaltunnel", "Create Tunnel")
-	postBody := ioutil.NopCloser(strings.NewReader(postData.Encode()))
 
-	resp := broker.doHttpFetch("POST", createUrl, postBody)
+	resp := broker.doHttpPost(createUrl, postData)
 	if nil == resp {
 		return false
 
@@ -319,7 +341,7 @@ func (broker *HEBroker) getBestIP() string {
 	ipUrl := "https://tunnelbroker.net/new_tunnel.php"
 
 	// do request
-	resp := broker.doHttpFetch("GET", ipUrl, nil)
+	resp := broker.doHttpGet(ipUrl)
 
 	if nil == resp {
 		return ""
@@ -352,16 +374,21 @@ func (broker *HEBroker) getBestIP() string {
 
 }
 
-func (b *HEBroker) doHttpFetch(method string, url string, body io.Reader) *http.Response {
-	req, err := http.NewRequest(method, url, body)
+func (b *HEBroker) doHttpGet(reqUrl string) *http.Response {
+	resp, err := b.client.Get(reqUrl)
+
 	if nil != err {
-		sys.Logger.Printf("create req(%s) for %s: %s\n", method, url, err)
+		sys.Logger.Printf("Get request %s: %s\n", reqUrl, err)
 		return nil
 	}
+	return resp
+}
 
-	resp, err := b.client.Do(req)
+func (b *HEBroker) doHttpPost(reqUrl string, vals url.Values) *http.Response {
+	resp, err := b.client.PostForm(reqUrl, vals)
+
 	if nil != err {
-		sys.Logger.Printf("request %s: %s\n", url, err)
+		sys.Logger.Printf("Post request %s: %s\n", reqUrl, err)
 		return nil
 	}
 

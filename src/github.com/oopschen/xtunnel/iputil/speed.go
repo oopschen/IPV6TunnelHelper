@@ -64,7 +64,6 @@ func GetBestIP(ips []string) string {
 	bestIP := ""
 	bestTime := measureTime(10000)
 	for ip, time := range ipTimeMap {
-		sys.Logger.Printf("ip %s, time %d", ip, time)
 		if bestTime > time {
 			bestTime = time
 			bestIP = ip

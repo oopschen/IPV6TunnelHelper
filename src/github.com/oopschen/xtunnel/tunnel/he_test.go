@@ -34,7 +34,7 @@ func TestFailLogin(t *testing.T) {
 	broker.Destroy()
 }
 
-func TestLogin(t *testing.T) {
+func TestNormal(t *testing.T) {
 	var (
 		broker = HEBroker{}
 		config = sys.Config{myUser, myUserPwd}
