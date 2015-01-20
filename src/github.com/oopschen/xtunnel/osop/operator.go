@@ -48,15 +48,17 @@ func (o *defaultWinTunnelOperator) Open() bool {
 	meta := o.meta
 	cmds := make([]*exec.Cmd, 4)
 	cmds[0] = exec.Command("netsh", "interface teredo set state disabled")
-	cmds[1] = exec.Command("netsh", fmt.Sprintf("interface ipv6 add %s interface=IP6Tunnel %s %s", tunnelName, meta.IPv4Client, meta.IPv4Server))
-	cmds[2] = exec.Command("netsh", fmt.Sprintf("interface ipv6 add address IP6Tunnel %s", meta.IPv6Client))
+	cmds[1] = exec.Command("netsh", fmt.Sprintf("interface ipv6 add v6v4tunnel interface=%s %s %s", tunnelName, meta.IPv4Client, meta.IPv4Server))
+	cmds[2] = exec.Command("netsh", fmt.Sprintf("interface ipv6 add address %s %s", tunnelName, meta.IPv6Client))
 	cmds[3] = exec.Command("netsh", fmt.Sprintf("interface ipv6 add route ::/0 %s", meta.IPv6Server))
 
 	return runCmds(cmds)
 }
 
 func (o *defaultWinTunnelOperator) Close() bool {
-	// TODO
+	cmds := make([]*exec.Cmd, 1)
+	cmds[0] = exec.Command("netsh", fmt.Sprintf("interface ipv6 delete interface %s ", tunnelName))
+	return runCmds(cmds)
 }
 
 func (o *defaultLinuxTunnelOperator) Open() bool {
@@ -72,7 +74,9 @@ func (o *defaultLinuxTunnelOperator) Open() bool {
 }
 
 func (o *defaultLinuxTunnelOperator) Close() bool {
-	// TODO
+	cmds := make([]*exec.Cmd, 1)
+	cmds[0] = exec.Command("ip", fmt.Sprintf("tunnel del %s ", tunnelName))
+	return runCmds(cmds)
 }
 
 func runCmds(cmds []*exec.Cmd) bool {
