@@ -15,16 +15,17 @@ You can install by the following command.
   
     go install github.com/oopschen/xtunnel
   
+Then check the executable file at bin/xtunnel, copy it to your *PATH*.
 
 ### Usage
 Open a tunnel by using the tunnelbroker **username** and **passwd**.
     
-    xtunnel -m o username passwd   
+    xtunnel -u username -p passwd open
 
      
-Close a tunnel.The **username** and **passwd** is irelevant, can be anything.
+Close a tunnel.
     
-    xtunnel -m c username passwd   
+    xtunnel close
 
      
 
@@ -38,5 +39,5 @@ Prerequest
 * [go][godown]\(>=1.3\) installed
   
 #### Linux  
-1. you need **iproute2** preinstalled  
-2. add sudo detect, i will suggest you to add *user ALL=(ALL) NOPASSWD:/sbin/sudo* to you sudo configuration, if wants normal user run the scripts
+1. you need **iproute2** preinstalled.  
+2. you need permission to send icmp packets and run *ip* command.
