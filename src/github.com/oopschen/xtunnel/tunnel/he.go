@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 )
 
 const (
@@ -66,7 +65,6 @@ func (broker *HEBroker) Init(cfg *sys.Config) bool {
 	}
 
 	broker.client = &http.Client{
-		Timeout:   10 * time.Second,
 		Transport: transport,
 		Jar:       cookiJarIns,
 	}
@@ -85,28 +83,32 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	     visit create page
 	     get meta
 	*/
+	sys.Logger.Printf("Get local address......\n")
 	curIP := iputil.GetLocalAddress()
 	if 1 > len(curIP) {
 		sys.Logger.Printf("Get local address\n")
 		return nil
 
 	}
+	sys.Logger.Printf("Get local address: Success\n")
 
 	// find tunnels
+	sys.Logger.Printf("Login HE Tunnel......\n")
 	if !broker.login() {
 		sys.Logger.Printf("Login as %s fail\n", broker.config.Username)
 		return nil
 
 	}
-
-	sys.Logger.Printf("Login success\n")
+	sys.Logger.Printf("Login HE Tunnel: Success \n")
 
 	var (
 		tunnels         []*sys.Meta
 		foundMeta, meta *sys.Meta
 	)
 
+	sys.Logger.Printf("Query HE Tunnels......\n")
 	tunnels = broker.findAllTunnels()
+	sys.Logger.Printf("Query HE Tunnels: Success\n")
 	// set up metas
 	meta = &sys.Meta{}
 	meta.IPv4Server = broker.getBestIP()
@@ -121,8 +123,8 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 
 	// find matched tunnel
 	if nil != tunnels {
-		sys.Logger.Printf("%d Tunnels found\n", len(tunnels))
 		for _, m := range tunnels {
+			sys.Logger.Printf("Found Tunnel: %#v\n", m)
 			if meta.IPv4Server == m.IPv4Server {
 				foundMeta = m
 				break
@@ -245,6 +247,7 @@ func (broker *HEBroker) findAllTunnels() []*sys.Meta {
 }
 
 func (broker *HEBroker) updateTunnel(meta *sys.Meta) bool {
+	sys.Logger.Printf("Update Tunnel: %#v\n", meta)
 	/*
 		update client server ip only
 	*/
@@ -277,6 +280,7 @@ func (broker *HEBroker) updateTunnel(meta *sys.Meta) bool {
 }
 
 func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
+	sys.Logger.Printf("Create Tunnel: %#v\n", meta)
 	/*
 		create tunnel
 		parse server router info
@@ -297,7 +301,7 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 
 	// parse tunnel
 	metas := broker.findAllTunnels()
-	if nil == meta {
+	if nil == metas {
 		sys.Logger.Printf("Create tunnel: empty tunnels\n")
 		return false
 
@@ -307,6 +311,7 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 		if m.IPv4Server == meta.IPv4Server {
 			meta.ID = m.ID
 			meta.IPv6Client = m.IPv6Client
+			meta.IPv6Server = m.IPv6Server
 			meta.Router6 = m.Router6
 			return true
 
@@ -324,6 +329,12 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 * @return the ip ping the fastest
  */
 func (broker *HEBroker) getBestIP() string {
+	sys.Logger.Printf("Determinate Best Tunnel Server End......\n")
+	defer func() {
+		sys.Logger.Printf("Determinate Best Tunnel Server End: Finish\n")
+
+	}()
+
 	/*
 		visit https://tunnelbroker.net/new_tunnel.php
 		parse ips
@@ -360,7 +371,6 @@ func (broker *HEBroker) getBestIP() string {
 
 	}
 
-	sys.Logger.Printf("Get best server ip: %s\n", strings.Join(ipSlice, ","))
 	return iputil.GetBestIP(ipSlice)
 
 }
@@ -405,7 +415,7 @@ func parseTunnels(xmlText io.Reader) []*sys.Meta {
 				tunnel := &sys.Meta{}
 				err := xmlDecoder.DecodeElement(&tunnel, &tokenType)
 				if nil != err {
-					sys.Logger.Printf("parse xml fail: %s, %v\n", err, xmlText)
+					sys.Logger.Printf("parse xml fail: %s, %#v\n", err, xmlText)
 					return nil
 
 				}
