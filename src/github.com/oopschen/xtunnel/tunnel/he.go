@@ -55,7 +55,7 @@ func (broker *HEBroker) Init(cfg *sys.Config) bool {
 	)
 
 	transport = &http.Transport{
-		DisableKeepAlives:  false,
+		DisableKeepAlives:  true,
 		DisableCompression: false,
 	}
 
@@ -360,6 +360,7 @@ func (broker *HEBroker) getBestIP() string {
 
 	}
 
+	sys.Logger.Printf("Get best server ip: %s\n", strings.Join(ipSlice, ","))
 	return iputil.GetBestIP(ipSlice)
 
 }
