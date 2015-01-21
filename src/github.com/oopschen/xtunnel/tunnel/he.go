@@ -19,7 +19,8 @@ const (
 )
 
 var (
-	ipListPattern *regexp.Regexp
+	ipListPattern       *regexp.Regexp
+	deleteTunnelPattern *regexp.Regexp
 )
 
 func init() {
@@ -29,8 +30,15 @@ func init() {
 		sys.Logger.Printf("init ip list pattern for he\n")
 
 	}
-
 	ipListPattern = pattern
+
+	pattern, err := regexp.Compile(`tunnel\s+has\s+been\s+deleted`)
+
+	if nil != err {
+		sys.Logger.Printf("init delete tunnel pattern for he\n")
+
+	}
+	deleteTunnelPattern = pattern
 }
 
 type HEBroker struct {
@@ -125,6 +133,18 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	if nil != tunnels {
 		for _, m := range tunnels {
 			sys.Logger.Printf("Found Tunnel: %#v\n", m)
+
+			// if ipclient exists, delete it
+			if meta.IPv4Client == m.IPv6Client {
+				sys.Logger.Printf("Delete Tunnel......\n")
+				if !broker.deleteTunnel(m) {
+					return nil
+
+				}
+
+				sys.Logger.Printf("Delete Tunnel: Success\n")
+			}
+
 			if meta.IPv4Server == m.IPv4Server {
 				foundMeta = m
 				break
@@ -297,6 +317,8 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 
 	}
 
+	// TODO check resp
+
 	defer resp.Body.Close()
 
 	// parse tunnel
@@ -436,4 +458,40 @@ func parseTunnels(xmlText io.Reader) []*sys.Meta {
 	}
 
 	return metas
+}
+
+func (broker *HEBroker) deleteTunnel(meta *sys.Meta) bool {
+	sys.Logger.Printf("Delete tunnel(%#v)......\n", meta)
+
+	delURL := fmt.Sprintf("https://tunnelbroker.net/tunnel_detail.php?tid=%s", meta.ID)
+	postData := url.Values{}
+	postData.Add("delete", "Delete Tunnel")
+
+	// post
+	resp := doHttpPost(delURL, postData)
+	if nil == resp {
+		return false
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if nil != err {
+		sys.Logger.Printf("Delete tunnel Error: %s\n", err)
+		return false
+
+	}
+
+	if 200 != resp.StatusCode {
+		sys.Logger.Printf("Delete tunnel Error: code=%d, %s\n", resp.StatusCode, string(body))
+		return false
+
+	}
+
+	if !deleteTunnelPattern.MatchString(string(body)) {
+		sys.Logger.Printf("Delete tunnel Error: pattern not match, %s\n", string(body))
+		return false
+
+	}
+
+	return true
 }
