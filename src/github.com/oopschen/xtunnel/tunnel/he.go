@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	pattern, err := regexp.Compile(`<span\s+style\s*=\s*"\s*float:\s*right;\s*color:\s*darkgray\s*"\s*>\s*([^\s<]+)\s*</span>`)
+	pattern, err := regexp.Compile(`(?i)<span\s+style\s*=\s*"\s*float:\s*right;\s*color:\s*darkgray\s*"\s*>\s*([^\s<]+)\s*</span>`)
 
 	if nil != err {
 		sys.Logger.Printf("init ip list pattern for he\n")
@@ -32,7 +32,7 @@ func init() {
 	}
 	ipListPattern = pattern
 
-	pattern, err := regexp.Compile(`tunnel\s+has\s+been\s+deleted`)
+	pattern, err := regexp.Compile(`(?i)tunnel\s+has\s+been\s+deleted`)
 
 	if nil != err {
 		sys.Logger.Printf("init delete tunnel pattern for he\n")
