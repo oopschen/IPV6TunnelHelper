@@ -84,7 +84,7 @@ func TestFindAllTunnels(t *testing.T) {
 		t.Fatalf("login fail")
 	}
 
-	meta := broker.findAllTunnels()
+	meta := broker.findAllTunnels("")
 	if nil == meta {
 		t.Fatalf("get Meta fail: %#v\n", meta)
 	}

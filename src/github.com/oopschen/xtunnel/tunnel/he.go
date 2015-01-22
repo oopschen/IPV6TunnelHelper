@@ -19,11 +19,14 @@ const (
 )
 
 var (
-	ipListPattern       *regexp.Regexp
-	deleteTunnelPattern *regexp.Regexp
+	ipListPattern         *regexp.Regexp
+	deleteTunnelPattern   *regexp.Regexp
+	createTunnelIDPattern *regexp.Regexp
+	errMsgPattern         *regexp.Regexp
 )
 
 func init() {
+	// ip list pattern
 	pattern, err := regexp.Compile(`(?i)<span\s+style\s*=\s*"\s*float:\s*right;\s*color:\s*darkgray\s*"\s*>\s*([^\s<]+)\s*</span>`)
 
 	if nil != err {
@@ -32,13 +35,32 @@ func init() {
 	}
 	ipListPattern = pattern
 
-	pattern, err := regexp.Compile(`(?i)tunnel\s+has\s+been\s+deleted`)
+	// delete tunnel page result pattern
+	pattern, err = regexp.Compile(`(?i)tunnel\s+has\s+been\s+deleted`)
 
 	if nil != err {
 		sys.Logger.Printf("init delete tunnel pattern for he\n")
 
 	}
 	deleteTunnelPattern = pattern
+
+	// create tunnel tunnel id pattern
+	pattern, err = regexp.Compile(`(?i)tunnel\s+id:\s+([0-9]+)`)
+
+	if nil != err {
+		sys.Logger.Printf("init create tunnel ID pattern for he\n")
+
+	}
+	createTunnelIDPattern = pattern
+
+	// error msg pattern
+	pattern, err = regexp.Compile(`(?i)<div\s+class\s*=\s*"errorMessageBox"\s*>([^<]+)<br\s*/>\s*</div\s*>`)
+
+	if nil != err {
+		sys.Logger.Printf("init error message pattern for he\n")
+
+	}
+	errMsgPattern = pattern
 }
 
 type HEBroker struct {
@@ -115,7 +137,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	)
 
 	sys.Logger.Printf("Query HE Tunnels......\n")
-	tunnels = broker.findAllTunnels()
+	tunnels = broker.findAllTunnels("")
 	sys.Logger.Printf("Query HE Tunnels: Success\n")
 	// set up metas
 	meta = &sys.Meta{}
@@ -136,6 +158,10 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 
 			// if ipclient exists, delete it
 			if meta.IPv4Client == m.IPv6Client {
+				if meta.IPv4Server == m.IPv4Server {
+					return m
+				}
+
 				sys.Logger.Printf("Delete Tunnel......\n")
 				if !broker.deleteTunnel(m) {
 					return nil
@@ -253,8 +279,14 @@ func (broker *HEBroker) login() bool {
 	return false
 }
 
-func (broker *HEBroker) findAllTunnels() []*sys.Meta {
-	tunnelURL := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php", broker.config.Username, broker.config.Userpasswd)
+func (broker *HEBroker) findAllTunnels(tunnelID string) []*sys.Meta {
+	queryTunnelID := ""
+	if 0 < len(tunnelID) {
+		queryTunnelID = fmt.Sprintf("?tid=%s", tunnelID)
+
+	}
+
+	tunnelURL := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php%s", broker.config.Username, broker.config.Userpasswd, queryTunnelID)
 	resp := broker.doHttpGet(tunnelURL)
 	if nil == resp {
 		return nil
@@ -317,32 +349,47 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 
 	}
 
-	// TODO check resp
-
 	defer resp.Body.Close()
 
+	// check resp and parse tunnel id
+	body, err := ioutil.ReadAll(resp.Body)
+	if nil != err {
+		sys.Logger.Printf("Create Tunnel: read result body %s\n", err)
+		return false
+	}
+
+	bodyStr := string(body)
+	matches := createTunnelIDPattern.FindStringSubmatch(bodyStr)
+	if nil == matches || 2 > len(matches) {
+		// parse err msg
+		matches = errMsgPattern.FindStringSubmatch(bodyStr)
+		if nil == matches || 2 > len(matches) {
+			sys.Logger.Printf("Create Tunnel: tunnel id 404, %s\n", bodyStr)
+
+		} else {
+			sys.Logger.Printf("Create Tunnel: tunnel id 404, errorMessage=%s\n", matches[1])
+
+		}
+
+		return false
+
+	}
+
 	// parse tunnel
-	metas := broker.findAllTunnels()
+	metas := broker.findAllTunnels(matches[1])
 	if nil == metas {
 		sys.Logger.Printf("Create tunnel: empty tunnels\n")
 		return false
 
 	}
 
-	for _, m := range metas {
-		if m.IPv4Server == meta.IPv4Server {
-			meta.ID = m.ID
-			meta.IPv6Client = m.IPv6Client
-			meta.IPv6Server = m.IPv6Server
-			meta.Router6 = m.Router6
-			return true
-
-		}
-
-	}
-
-	sys.Logger.Printf("Create tunnel: can not find created tunnel(%#v)\n", meta)
-	return false
+	// copy meta
+	m := metas[0]
+	meta.ID = m.ID
+	meta.IPv6Client = m.IPv6Client
+	meta.IPv6Server = m.IPv6Server
+	meta.Router6 = m.Router6
+	return true
 }
 
 /**
@@ -468,7 +515,7 @@ func (broker *HEBroker) deleteTunnel(meta *sys.Meta) bool {
 	postData.Add("delete", "Delete Tunnel")
 
 	// post
-	resp := doHttpPost(delURL, postData)
+	resp := broker.doHttpPost(delURL, postData)
 	if nil == resp {
 		return false
 	}

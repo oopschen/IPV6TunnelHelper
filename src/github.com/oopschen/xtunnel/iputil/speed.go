@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxConcurrent = 10
+	maxConcurrent = 30
 	// 5 seconds
 	timeoutNanoMS = 5 * time.Second
 	tryCount      = 4
