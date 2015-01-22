@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	maxConcurrent = 30
 	// 5 seconds
 	timeoutNanoMS = 5 * time.Second
 	tryCount      = 4
+	minTimeMS     = measureTime(30)
 )
 
 type measureTime uint16
@@ -40,26 +40,25 @@ func GetBestIP(ips []string) string {
 
 	}
 
-	curConcurrent := 0
-	c := make(chan ipMeta, 128)
-	defer close(c)
 	ipTimeMap := make(map[string]measureTime)
 	for _, ip := range ips {
 		if 1 > len(ip) {
 			continue
 		}
 
-		go checkPermform(c, ip)
-
-		curConcurrent++
-		if maxConcurrent >= curConcurrent {
-			wait4Chan(c, ipTimeMap, curConcurrent)
-			curConcurrent = 0
+		meta := checkPermform(ip)
+		if "" == meta.ip {
+			continue
 		}
 
-	}
+		// if <= minTime then return it directly
+		if minTimeMS <= meta.avgMS {
+			return meta.ip
+		}
 
-	wait4Chan(c, ipTimeMap, curConcurrent)
+		ipTimeMap[meta.ip] = meta.avgMS
+
+	}
 
 	bestIP := ""
 	bestTime := measureTime(10000)
@@ -75,14 +74,8 @@ func GetBestIP(ips []string) string {
 	return bestIP
 }
 
-func checkPermform(c chan ipMeta, ip string) {
-	resultMeta := ipMeta{}
-	// always send meta to chan
-	defer func() {
-		c <- resultMeta
-
-	}()
-
+func checkPermform(ip string) (resultMeta *ipMeta) {
+	resultMeta = &ipMeta{}
 	conn, err := net.DialTimeout("ip4:icmp", ip, timeoutNanoMS)
 	if nil != err {
 		sys.Logger.Printf("socket %s", err)
@@ -136,18 +129,7 @@ func checkPermform(c chan ipMeta, ip string) {
 	resultMeta.ip = ip
 	// ms
 	resultMeta.avgMS = measureTime(uint16(tolTime/1000000) / tryCount)
-}
-
-func wait4Chan(c chan ipMeta, dest map[string]measureTime, num int) {
-	for i := 0; i < num; i++ {
-		meta, ok := <-c
-		if !ok || "" == meta.ip {
-			continue
-		}
-		dest[meta.ip] = meta.avgMS
-
-	}
-
+	return
 }
 
 func createPkt(ip string, id uint16, seq uint16) []byte {

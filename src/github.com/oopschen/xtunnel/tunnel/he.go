@@ -54,7 +54,7 @@ func init() {
 	createTunnelIDPattern = pattern
 
 	// error msg pattern
-	pattern, err = regexp.Compile(`(?i)<div\s+class\s*=\s*"errorMessageBox"\s*>([^<]+)<br\s*/>\s*</div\s*>`)
+	pattern, err = regexp.Compile(`(?i)<div\s+class\s*=\s*"errorMessageBox"\s*>([^<]+).*</div\s*>`)
 
 	if nil != err {
 		sys.Logger.Printf("init error message pattern for he\n")
@@ -275,7 +275,7 @@ func (broker *HEBroker) login() bool {
 
 	}
 
-	sys.Logger.Printf("Login redirect page do not contain keywords: status=%s, body=%s\n", resp.Status, body)
+	sys.Logger.Printf("Login redirect page do not contain keywords: status=%s, errorMessage=%s\n", resp.Status, parseErrorMessage(body))
 	return false
 }
 
@@ -355,16 +355,8 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 	bodyStr := string(body)
 	matches := createTunnelIDPattern.FindStringSubmatch(bodyStr)
 	if nil == matches || 2 > len(matches) {
-		// parse err msg
-		matches = errMsgPattern.FindStringSubmatch(bodyStr)
-		if nil == matches || 2 > len(matches) {
-			sys.Logger.Printf("Create Tunnel: tunnel id 404, %s\n", bodyStr)
-
-		} else {
-			sys.Logger.Printf("Create Tunnel: tunnel id 404, errorMessage=%s\n", matches[1])
-
-		}
-
+		errMsg := parseErrorMessage(bodyStr)
+		sys.Logger.Printf("Create Tunnel: tunnel id 404, errorMessage=%s\n", errMsg)
 		return false
 
 	}
@@ -432,7 +424,7 @@ func (broker *HEBroker) getBestIP() string {
 	// parse ips
 	ips := ipListPattern.FindAllStringSubmatch(string(body), -1)
 	if nil == ips {
-		sys.Logger.Printf("Find best server body %s\n", string(body))
+		sys.Logger.Printf("Find best server body: %s\n", parseErrorMessage(string(body)))
 		return ""
 
 	}
@@ -544,4 +536,17 @@ func (broker *HEBroker) deleteTunnel(meta *sys.Meta) bool {
 	}
 
 	return true
+}
+
+func parseErrorMessage(html string) string {
+	// parse err msg
+	matches := errMsgPattern.FindStringSubmatch(html)
+	if nil == matches || 2 > len(matches) {
+		return html
+
+	} else {
+		return matches[1]
+
+	}
+
 }
