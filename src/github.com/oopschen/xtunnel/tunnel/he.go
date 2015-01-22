@@ -137,7 +137,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	)
 
 	sys.Logger.Printf("Query HE Tunnels......\n")
-	tunnels = broker.findAllTunnels("")
+	tunnels = broker.findAllTunnels()
 	sys.Logger.Printf("Query HE Tunnels: Success\n")
 	// set up metas
 	meta = &sys.Meta{}
@@ -279,14 +279,8 @@ func (broker *HEBroker) login() bool {
 	return false
 }
 
-func (broker *HEBroker) findAllTunnels(tunnelID string) []*sys.Meta {
-	queryTunnelID := ""
-	if 0 < len(tunnelID) {
-		queryTunnelID = fmt.Sprintf("?tid=%s", tunnelID)
-
-	}
-
-	tunnelURL := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php%s", broker.config.Username, broker.config.Userpasswd, queryTunnelID)
+func (broker *HEBroker) findAllTunnels() []*sys.Meta {
+	tunnelURL := fmt.Sprintf("https://%s:%s@tunnelbroker.net/tunnelInfo.php", broker.config.Username, broker.config.Userpasswd)
 	resp := broker.doHttpGet(tunnelURL)
 	if nil == resp {
 		return nil
@@ -374,22 +368,31 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 		return false
 
 	}
+	sys.Logger.Printf("Create Tunnel: Success(id=%s)\n", matches[1])
 
 	// parse tunnel
-	metas := broker.findAllTunnels(matches[1])
+	metas := broker.findAllTunnels()
 	if nil == metas {
 		sys.Logger.Printf("Create tunnel: empty tunnels\n")
 		return false
 
 	}
 
-	// copy meta
-	m := metas[0]
-	meta.ID = m.ID
-	meta.IPv6Client = m.IPv6Client
-	meta.IPv6Server = m.IPv6Server
-	meta.Router6 = m.Router6
-	return true
+	for _, m := range metas {
+		if m.ID == matches[1] {
+			// copy meta
+			meta.ID = m.ID
+			meta.IPv6Client = m.IPv6Client
+			meta.IPv6Server = m.IPv6Server
+			meta.Router6 = m.Router6
+			return true
+
+		}
+
+	}
+
+	sys.Logger.Printf("Create Tunnel: find no tunnel detail for id=%s\n", matches[1])
+	return false
 }
 
 /**
