@@ -77,65 +77,65 @@ func GetBestIP(ips []string) string {
 
 func checkPermform(c chan ipMeta, ip string) {
 	resultMeta := ipMeta{}
+	// always send meta to chan
+	defer func() {
+		c <- resultMeta
+
+	}()
 
 	conn, err := net.DialTimeout("ip4:icmp", ip, timeoutNanoMS)
 	if nil != err {
 		sys.Logger.Printf("socket %s", err)
-		c <- resultMeta
 		return
 
 	}
-
+	// always close conn if opened
 	defer conn.Close()
 
 	var (
 		tolTime uint64 = 0
-		count   uint16 = 0
 		pId     uint16 = 0x78
 		pSeq    uint16 = 0x45
 		recvBuf        = make([]byte, 8) // only type code header id seq
 	)
 
+	// start time
+	timeStart := time.Now()
+
+	// send pkts
 	for i := 0; i < tryCount; i++ {
-		// send pkts
 		pkt := createPkt(ip, pId, pSeq)
 		if nil == pkt {
 			sys.Logger.Printf("create packet %s", err)
-			continue
-
-		}
-
-		timeStart := time.Now()
-
-		_, err := conn.Write(pkt)
-		if nil != err {
-			sys.Logger.Printf("write packet %s", err)
-			c <- resultMeta
 			return
 
 		}
 
-		// read pkts
-		conn.SetReadDeadline(time.Now().Add(timeoutNanoMS))
-		_, err = conn.Read(recvBuf)
+		_, err := conn.Write(pkt)
 		if nil != err {
-			tolTime += 100000
-			count++
-			continue
+			sys.Logger.Printf("write packet %s", err)
+			return
 
 		}
+	}
 
-		count++
-		tolTime += uint64(time.Now().Sub(timeStart).Nanoseconds())
+	// recv pkts
+	conn.SetReadDeadline(time.Now().Add(timeoutNanoMS))
+	for i := 0; i < tryCount; i++ {
+		_, err = conn.Read(recvBuf)
+		if nil != err {
+			sys.Logger.Printf("read packet %s", err)
+			return
+		}
 
 	}
+
+	tolTime = uint64(time.Now().Sub(timeStart).Nanoseconds())
 
 	// send result to channel
 	resultMeta.ip = ip
 	// ms
-	resultMeta.avgMS = measureTime(uint16(tolTime/1000000) / count)
-	c <- resultMeta
-
+	resultMeta.avgMS = measureTime(uint16(tolTime/1000000) / tryCount)
 }
 
 func wait4Chan(c chan ipMeta, dest map[string]measureTime, num int) {
