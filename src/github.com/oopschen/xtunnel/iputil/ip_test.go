@@ -13,13 +13,22 @@ func TestGetLocalAddress(t *testing.T) {
 
 	}
 
-	ip := GetLocalAddress()
+	ip, natIP := GetLocalAddress()
 	if 1 > len(ip) || strings.HasPrefix(ip, "192.168") {
 		t.Fatalf("ip not correct: %s\n", ip)
 	}
 
 	if !ipPattern.MatchString(ip) {
 		t.Fatalf("ip not match pattern: %s\n", ip)
+
+	}
+
+	if 1 > len(natIP) || !strings.HasPrefix(natIP, "192.168") {
+		t.Fatalf("ip not correct: %s\n", natIP)
+	}
+
+	if !ipPattern.MatchString(natIP) {
+		t.Fatalf("ip not match pattern: %s\n", natIP)
 
 	}
 }
