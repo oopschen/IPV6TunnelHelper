@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetLocalAddress(t *testing.T) {
-	ipPattern, err := regexp.Compile(`[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}`)
+	ipPattern, err := regexp.Compile(`(?m)^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$`)
 	if nil != err {
 		t.Fatalf("ip pattern not correct: %s\n", err)
 

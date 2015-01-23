@@ -114,9 +114,9 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	     get meta
 	*/
 	sys.Logger.Printf("Get local address......\n")
-	curIP := iputil.GetLocalAddress()
-	if 1 > len(curIP) {
-		sys.Logger.Printf("Get local address\n")
+	curIP, realCurIP := iputil.GetLocalAddress()
+	if "" == curIP || "" == realCurIP {
+		sys.Logger.Printf("Get local address: cur=%s, real=%s\n", curIP, realCurIP)
 		return nil
 
 	}
@@ -204,6 +204,8 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 
 	}
 
+	// set client ip to nat ip
+	meta.IPv4Client = realCurIP
 	sys.Logger.Printf("Fetch tunnel info success\n")
 	return meta
 }

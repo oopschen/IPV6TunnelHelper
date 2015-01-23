@@ -74,5 +74,11 @@ func getLocalAddr() string {
 
 	defer conn.Close()
 
-	return conn.LocalAddr().String()
+	host, _, err := net.SplitHostPort(conn.LocalAddr().String())
+	if nil != err {
+		sys.Logger.Printf("get ip %s\n", err)
+		return ""
+	}
+
+	return host
 }
