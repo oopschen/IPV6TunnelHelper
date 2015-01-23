@@ -62,12 +62,11 @@ func (o *defaultWinTunnelOperator) Close() bool {
 
 func (o *defaultLinuxTunnelOperator) Open() bool {
 	meta := o.meta
-	cmds := make([]*exec.Cmd, 5)
+	cmds := make([]*exec.Cmd, 4)
 	cmds[0] = exec.Command("ip", "tunnel", "add", tunnelName, "mode", "sit", "remote", meta.IPv4Server, "local", meta.IPv4Client, "ttl", "255")
 	cmds[1] = exec.Command("ip", "link", "set", tunnelName, "up")
 	cmds[2] = exec.Command("ip", "addr", "add", meta.IPv6Client+"/64", "dev", tunnelName)
 	cmds[3] = exec.Command("ip", "route", "add", "::/0", "dev", tunnelName)
-	cmds[4] = exec.Command("ip", "-f", "inet6", "addr")
 
 	return runCmds(cmds)
 }
