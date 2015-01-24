@@ -157,8 +157,9 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 			sys.Logger.Printf("Found Tunnel: %#v\n", m)
 
 			// if ipclient exists, delete it
-			if meta.IPv4Client == m.IPv6Client {
+			if meta.IPv4Client == m.IPv4Client {
 				if meta.IPv4Server == m.IPv4Server {
+					m.IPv4Client = realCurIP
 					return m
 				}
 
@@ -191,15 +192,11 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 			return nil
 
 		} else if !broker.createTunnel(meta) {
-			sys.Logger.Printf("Create Tunnel fail\n")
-			// create tunnel
 			return nil
 
 		}
 
-	} else if meta.ID = foundMeta.ID; !broker.updateTunnel(meta) {
-		sys.Logger.Printf("Update Tunnel fail \n")
-		// update
+	} else if copyMeta(foundMeta, meta); !broker.updateTunnel(meta) {
 		return nil
 
 	}
@@ -375,10 +372,7 @@ func (broker *HEBroker) createTunnel(meta *sys.Meta) bool {
 	for _, m := range metas {
 		if m.ID == matches[1] {
 			// copy meta
-			meta.ID = m.ID
-			meta.IPv6Client = m.IPv6Client
-			meta.IPv6Server = m.IPv6Server
-			meta.Router6 = m.Router6
+			copyMeta(m, meta)
 			return true
 
 		}
@@ -551,4 +545,11 @@ func parseErrorMessage(html string) string {
 
 	}
 
+}
+
+func copyMeta(from, to *sys.Meta) {
+	to.ID = from.ID
+	to.IPv6Client = from.IPv6Client
+	to.IPv6Server = from.IPv6Server
+	to.Router6 = from.Router6
 }

@@ -83,9 +83,9 @@ func runCmds(cmds []*exec.Cmd) bool {
 	}
 
 	for _, cmd := range cmds {
-		err := cmd.Run()
+		bytes, err := cmd.CombinedOutput()
 		if nil != err {
-			sys.Logger.Printf("cmd fail:\nstdout:\n\t%s\nstderr:\n\t%s\n%#v\nerror:\n\t%s\n", cmd.Stdout, cmd.Stderr, cmd, err)
+			sys.Logger.Printf("cmd fail:\noutput=>\n\t%s\ncmd=>\n\t%#v\nerror:\n\t%s\n", string(bytes), cmd, err)
 			return false
 		}
 	}
