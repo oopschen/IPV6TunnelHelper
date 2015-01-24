@@ -26,8 +26,9 @@ Open a tunnel by using the tunnelbroker **username** and **passwd**.
 Close a tunnel.
     
     xtunnel close
-
-     
+      
+### Tips  
+Put the executable file to path, use the sudo for convenience.
 
 Where it from?
 ===
