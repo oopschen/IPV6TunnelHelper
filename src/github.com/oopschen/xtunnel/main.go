@@ -61,10 +61,7 @@ func main() {
 	// do the operator
 	if actionOpen == action {
 		// open
-		cfg := &sys.Config{
-			Username:   user,
-			Userpasswd: pwd,
-		}
+		cfg := &sys.Config{user, pwd}
 		broker := &tunnel.HEBroker{}
 		if !broker.Init(cfg) {
 			sys.Logger.Printf("Init broker fail\n")
