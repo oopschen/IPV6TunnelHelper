@@ -13,6 +13,7 @@ Feature
 ### Install  
 You can install by the following command.  
   
+    export GOPATH=$(pwd)
     go install github.com/oopschen/xtunnel
   
 Then check the executable file at bin/xtunnel, copy it to your *PATH*.
