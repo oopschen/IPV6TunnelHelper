@@ -6,13 +6,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 )
 
 const (
 	// 3 seconds
 	DIAL_TIMEOUT_NANOSEC = 5 * time.Second
-	TEST_WEBSITE_FOR_IP  = "http://ipv4.infobyip.com/ipdetector.php"
+	TEST_WEBSITE_FOR_IP  = "http://www.ip.cn"
 )
 
 var (
@@ -20,7 +21,14 @@ var (
 		DisableKeepAlives:  true,
 		DisableCompression: false,
 	}
+
+	ipRegex *regexp.Regexp
 )
+
+func init() {
+	ipRegex = regexp.MustCompile(`(?i)<code>\s*([0-9.]+)`)
+
+}
 
 /**
 * <p>get local address</p>
@@ -52,7 +60,12 @@ func GetLocalAddress() (ipv4, localIpv4 string) {
 		return
 	}
 
-	ipv4 = string(body)
+	// parse ip
+	matches := ipRegex.FindStringSubmatch(string(body))
+	if nil != matches {
+		ipv4 = matches[1]
+	}
+
 	localIpv4 = getLocalAddr()
 	return
 }
