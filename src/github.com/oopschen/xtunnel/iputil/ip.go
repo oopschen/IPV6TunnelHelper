@@ -26,7 +26,7 @@ var (
 )
 
 func init() {
-	ipRegex = regexp.MustCompile(`(?i)<code>\s*([0-9.]+)`)
+	ipRegex = regexp.MustCompile(`(?i)([0-9.]+)`)
 
 }
 
@@ -39,12 +39,22 @@ func GetLocalAddress() (ipv4, localIpv4 string) {
 		get http://ip-lookup.net/
 		parse ip address
 	*/
+	req, err := http.NewRequest("GET", TEST_WEBSITE_FOR_IP, nil)
+	if nil != err {
+		sys.Logger.Printf("init request %s: %s\n", TEST_WEBSITE_FOR_IP, err)
+		return
+
+	}
+
+	req.Header.Add("User-Agent", "curl/7.43.0")
+	req.Header.Add("Accept", "*/*")
+
 	client := &http.Client{
 		Timeout:   DIAL_TIMEOUT_NANOSEC,
 		Transport: transport,
 	}
 
-	resp, err := client.Get(TEST_WEBSITE_FOR_IP)
+	resp, err := client.Do(req)
 	if nil != err {
 		sys.Logger.Printf("request %s: %s\n", TEST_WEBSITE_FOR_IP, err)
 		return
