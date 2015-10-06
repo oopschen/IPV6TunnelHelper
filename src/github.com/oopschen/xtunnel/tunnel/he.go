@@ -154,33 +154,13 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	// find matched tunnel
 	if nil != tunnels {
 		for _, m := range tunnels {
-			sys.Logger.Printf("Found Tunnel: %#v\n", m)
-
-			// if ipclient exists, delete it
-			if meta.IPv4Client == m.IPv4Client {
-				if meta.IPv4Server == m.IPv4Server {
-					m.IPv4Client = realCurIP
-					return m
-				}
-
-				sys.Logger.Printf("Delete Tunnel......\n")
-				if !broker.deleteTunnel(m) {
-					return nil
-
-				}
-
-				sys.Logger.Printf("Delete Tunnel: Success\n")
-			}
-
-			if meta.IPv4Server == m.IPv4Server {
+			if meta.Eq(m) {
 				foundMeta = m
+				sys.Logger.Printf("Found Tunnel: %#v\n", m)
 				break
 			}
 
 		}
-
-	} else {
-		sys.Logger.Printf("No Tunnels found\n")
 
 	}
 
@@ -196,7 +176,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 
 		}
 
-	} else if copyMeta(foundMeta, meta); !broker.updateTunnel(meta) {
+	} else if copyMeta(foundMeta, meta); curIP != foundMeta.IPv4Client && !broker.updateTunnel(meta) {
 		return nil
 
 	}
@@ -480,6 +460,13 @@ func parseTunnels(xmlText io.Reader) []*sys.Meta {
 
 				}
 
+				// format mask
+				routes := strings.Split(tunnel.Router6, "/")
+				if 1 < len(routes) {
+					tunnel.Router6 = routes[0]
+					tunnel.Router6Mask = routes[1]
+				}
+
 				if nil == metas {
 					metas = make([]*sys.Meta, 1)
 					metas[0] = tunnel
@@ -549,7 +536,9 @@ func parseErrorMessage(html string) string {
 
 func copyMeta(from, to *sys.Meta) {
 	to.ID = from.ID
+	to.IPv4Server = from.IPv4Server
 	to.IPv6Client = from.IPv6Client
 	to.IPv6Server = from.IPv6Server
 	to.Router6 = from.Router6
+	to.Router6Mask = from.Router6Mask
 }

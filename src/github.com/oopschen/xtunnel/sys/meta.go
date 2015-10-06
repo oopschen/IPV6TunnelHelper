@@ -12,4 +12,25 @@ type Meta struct {
 	IPv6Server string `xml:"serverv6"`
 	// router ipv6
 	Router6 string `xml:"routed64"`
+	// router ipv6 mask
+	Router6Mask string
+}
+
+func (m *Meta) Eq(q *Meta) bool {
+	if nil == q {
+		return false
+	}
+
+	if "" != m.IPv4Server && m.IPv4Server == q.IPv4Server {
+		return true
+	}
+
+	if "" != m.IPv6Client && m.IPv6Client == q.IPv6Client {
+		return true
+	}
+
+	if "" != m.IPv6Server && m.IPv6Server == q.IPv6Server {
+		return true
+	}
+	return false
 }

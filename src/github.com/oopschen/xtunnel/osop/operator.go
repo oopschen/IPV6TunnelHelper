@@ -65,7 +65,7 @@ func (o *defaultLinuxTunnelOperator) Open() bool {
 	cmds := make([]*exec.Cmd, 4)
 	cmds[0] = exec.Command("ip", "tunnel", "add", tunnelName, "mode", "sit", "remote", meta.IPv4Server, "local", meta.IPv4Client, "ttl", "255")
 	cmds[1] = exec.Command("ip", "link", "set", tunnelName, "up")
-	cmds[2] = exec.Command("ip", "addr", "add", meta.IPv6Client+"/64", "dev", tunnelName)
+	cmds[2] = exec.Command("ip", "addr", "add", meta.IPv6Client+"/"+meta.Router6Mask, "dev", tunnelName)
 	cmds[3] = exec.Command("ip", "route", "add", "::/0", "dev", tunnelName)
 
 	return runCmds(cmds)
