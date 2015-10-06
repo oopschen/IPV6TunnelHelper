@@ -194,17 +194,19 @@ func sendRecvPackets(result chan ipMeta, ip string) {
 func recvPkt(result chan int16, conn net.Conn) {
 	// recv pkts
 	var (
-		recvBuf         = make([]byte, 72) // only type code header id seq and timestamp: 60 bytes ip header + 12 icmp
-		ms        int16 = -1
+		recvBuf          = make([]byte, 72) // only type code header id seq and timestamp: 60 bytes ip header + 12 icmp
+		ms        int16  = -1
+		tmpNano   uint64 = 0
 		startNano int64
 		icmpBuf   []byte
+		cnt       uint64 = 0
 	)
 
 	defer func() {
 		result <- ms
 	}()
 
-	for cnt := 0; cnt < tryCount; {
+	for cnt = 0; cnt < tryCount; {
 		conn.SetReadDeadline(time.Now().Add(timeoutNanoMS))
 		byteNum, err := conn.Read(recvBuf)
 		if nil != err {
@@ -239,7 +241,7 @@ func recvPkt(result chan int16, conn net.Conn) {
 		err = binary.Read(readBuf, binary.BigEndian, &startNano)
 		if nil == err {
 			cnt += 1
-			ms = int16((time.Now().UnixNano() - startNano) / 1000000)
+			tmpNano += uint64((time.Now().UnixNano() - startNano))
 		} else {
 			sys.Logger.Printf("read timestamp %s", err)
 
@@ -247,4 +249,7 @@ func recvPkt(result chan int16, conn net.Conn) {
 
 	}
 
+	if 0 < cnt {
+		ms = int16(tmpNano / cnt / 1000000)
+	}
 }
