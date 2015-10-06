@@ -10,23 +10,25 @@ import (
 
 const (
 	// 5 seconds
-	timeoutNanoMS = 5 * time.Second
+	timeoutNanoMS = 1 * time.Second
 	tryCount      = 4
 	minTimeMS     = measureTime(30)
+	defaultIP     = "0.0.0.0"
 )
 
 type measureTime uint16
 type ipMeta struct {
 	ip    string
-	avgMS measureTime
+	mTime measureTime
 }
 
 type icmpEchoRequest struct {
-	typ      uint8
-	code     uint8
-	checksum uint16
-	id       uint16
-	seq      uint16
+	typ       uint8
+	code      uint8
+	checksum  uint16
+	id        uint16
+	seq       uint16
+	timestamp uint64
 }
 
 /**
@@ -40,33 +42,31 @@ func GetBestIP(ips []string) string {
 
 	}
 
-	ipTimeMap := make(map[string]measureTime)
-	for _, ip := range ips {
+	ipMetaList := make([]chan ipMeta, len(ips))
+
+	// send start
+	for i, ip := range ips {
 		if 1 > len(ip) {
 			continue
 		}
 
-		meta := checkPermform(ip)
-		if "" == meta.ip {
+		ipMetaList[i] = make(chan ipMeta)
+		go sendRecvPackets(ipMetaList[i], ip)
+	}
+
+	// recv packets
+	bestIP := ""
+	bestTime := measureTime(65535)
+	for _, ipChan := range ipMetaList {
+		recvRes := <-ipChan
+
+		if defaultIP == recvRes.ip {
 			continue
 		}
 
-		// if <= minTime then return it directly
-		if minTimeMS <= meta.avgMS {
-			return meta.ip
-		}
-
-		ipTimeMap[meta.ip] = meta.avgMS
-
-	}
-
-	bestIP := ""
-	bestTime := measureTime(10000)
-	for ip, time := range ipTimeMap {
-		if bestTime > time {
-			bestTime = time
-			bestIP = ip
-
+		if bestTime > recvRes.mTime {
+			bestTime = recvRes.mTime
+			bestIP = recvRes.ip
 		}
 
 	}
@@ -74,32 +74,16 @@ func GetBestIP(ips []string) string {
 	return bestIP
 }
 
-func checkPermform(ip string) (resultMeta *ipMeta) {
-	resultMeta = &ipMeta{}
-	conn, err := net.DialTimeout("ip4:icmp", ip, timeoutNanoMS)
-	if nil != err {
-		sys.Logger.Printf("socket %s", err)
-		return
-
-	}
-	// always close conn if opened
-	defer conn.Close()
-
+func sendPkt(ip string, conn net.Conn) {
 	var (
-		tolTime uint64 = 0
-		pId     uint16 = 0x78
-		pSeq    uint16 = 0x45
-		recvBuf        = make([]byte, 8) // only type code header id seq
+		pId  uint16 = 0x78
+		pSeq uint16 = 0x45
 	)
-
-	// start time
-	timeStart := time.Now()
 
 	// send pkts
 	for i := 0; i < tryCount; i++ {
 		pkt := createPkt(ip, pId, pSeq)
 		if nil == pkt {
-			sys.Logger.Printf("create packet %s", err)
 			return
 
 		}
@@ -110,26 +94,10 @@ func checkPermform(ip string) (resultMeta *ipMeta) {
 			return
 
 		}
+		pId++
+		pSeq++
 	}
 
-	// recv pkts
-	conn.SetReadDeadline(time.Now().Add(timeoutNanoMS))
-	for i := 0; i < tryCount; i++ {
-		_, err = conn.Read(recvBuf)
-		if nil != err {
-			sys.Logger.Printf("read packet %s", err)
-			return
-		}
-
-	}
-
-	tolTime = uint64(time.Now().Sub(timeStart).Nanoseconds())
-
-	// send result to channel
-	resultMeta.ip = ip
-	// ms
-	resultMeta.avgMS = measureTime(uint16(tolTime/1000000) / tryCount)
-	return
 }
 
 func createPkt(ip string, id uint16, seq uint16) []byte {
@@ -141,6 +109,7 @@ func createPkt(ip string, id uint16, seq uint16) []byte {
 	icmpReq.checksum = 0
 	icmpReq.id = id
 	icmpReq.seq = seq
+	icmpReq.timestamp = uint64(time.Now().UnixNano())
 
 	err := binary.Write(out, binary.BigEndian, icmpReq)
 	if nil != err {
@@ -180,4 +149,102 @@ func checksum(data []byte) uint16 {
 	sum += (sum >> 16)
 
 	return uint16(^sum)
+}
+
+func sendRecvPackets(result chan ipMeta, ip string) {
+	var (
+		returnIp = defaultIP
+		mTime    = measureTime(0)
+		recvChan = make(chan int16)
+		conn     net.Conn
+	)
+
+	// always close conn if opened
+	defer func() {
+		if nil != conn {
+			conn.Close()
+		}
+		result <- ipMeta{ip: returnIp, mTime: mTime}
+	}()
+
+	// init connection
+	conn, err := net.Dial("ip4:icmp", ip)
+	if nil != err {
+		sys.Logger.Printf("socket %s", err)
+		return
+	}
+
+	// recvs
+	go recvPkt(recvChan, conn)
+
+	// sends
+	sendPkt(ip, conn)
+
+	// check recvs
+	recvMs := <-recvChan
+	if 0 > recvMs {
+		return
+	}
+
+	mTime = measureTime(recvMs)
+
+	returnIp = ip
+}
+
+func recvPkt(result chan int16, conn net.Conn) {
+	// recv pkts
+	var (
+		recvBuf         = make([]byte, 72) // only type code header id seq and timestamp: 60 bytes ip header + 12 icmp
+		ms        int16 = -1
+		startNano int64
+		icmpBuf   []byte
+	)
+
+	defer func() {
+		result <- ms
+	}()
+
+	for cnt := 0; cnt < tryCount; {
+		conn.SetReadDeadline(time.Now().Add(timeoutNanoMS))
+		byteNum, err := conn.Read(recvBuf)
+		if nil != err {
+			if errT, ok := err.(net.Error); ok && errT.Timeout() {
+				break
+
+			}
+
+			sys.Logger.Printf("wait for packet %s", err)
+			continue
+
+		} else if len(recvBuf) > byteNum {
+			// check is icmp, 10th bytes
+			if 1 != recvBuf[9] {
+				sys.Logger.Printf("wait for packet %x", recvBuf[8])
+				continue
+			}
+
+			// parse ip header
+			icmpBuf = recvBuf[uint16(0x0F&recvBuf[0])*4:]
+
+			// not icmp echo reply and not enough bytes recv
+			if 0 != icmpBuf[0] || 0 != icmpBuf[1] {
+				sys.Logger.Printf("invalid packet, bytes=%d, type=0x%x, code=0x%x", byteNum, icmpBuf[0], icmpBuf[1])
+				continue
+			}
+
+		}
+
+		// parse timestamp and ip
+		readBuf := bytes.NewReader(icmpBuf[8:])
+		err = binary.Read(readBuf, binary.BigEndian, &startNano)
+		if nil == err {
+			cnt += 1
+			ms = int16((time.Now().UnixNano() - startNano) / 1000000)
+		} else {
+			sys.Logger.Printf("read timestamp %s", err)
+
+		}
+
+	}
+
 }
