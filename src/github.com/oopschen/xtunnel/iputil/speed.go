@@ -11,7 +11,7 @@ import (
 const (
 	// 5 seconds
 	timeoutNanoMS = 1 * time.Second
-	tryCount      = 4
+	tryCount      = 8
 	minTimeMS     = measureTime(30)
 	defaultIP     = "0.0.0.0"
 )

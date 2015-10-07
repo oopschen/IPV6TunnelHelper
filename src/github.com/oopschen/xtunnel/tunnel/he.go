@@ -160,6 +160,11 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 				break
 			}
 
+			// ipv4 client is eq and ipv4 server is not then delete the tunnel
+			if m.IPv4Client == meta.IPv4Client {
+				broker.deleteTunnel(m)
+			}
+
 		}
 
 	}
