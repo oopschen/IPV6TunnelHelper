@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const (
@@ -139,6 +140,22 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 	sys.Logger.Printf("Query HE Tunnels......\n")
 	tunnels = broker.findAllTunnels()
 	sys.Logger.Printf("Query HE Tunnels: Success\n")
+
+	// if max tunnels found
+	if nil != tunnels && maxTunnelNum <= len(tunnels) {
+		// delete the first one
+		for _, m := range tunnels {
+			if curIP != m.IPv4Client {
+				if !broker.deleteTunnel(m) {
+					return nil
+				} else {
+					break
+				}
+
+			}
+		}
+	}
+
 	// set up metas
 	meta = &sys.Meta{}
 	meta.IPv4Server = broker.getBestIP()
@@ -149,6 +166,7 @@ func (broker *HEBroker) GetMeta() *sys.Meta {
 		return nil
 
 	}
+
 	sys.Logger.Printf("Choose %s for tunnel %s\n", meta.IPv4Server, meta.IPv4Client)
 
 	// find matched tunnel
@@ -523,6 +541,7 @@ func (broker *HEBroker) deleteTunnel(meta *sys.Meta) bool {
 
 	}
 
+	time.Sleep(time.Second)
 	return true
 }
 
